@@ -36,7 +36,10 @@ const translations = {
         cacheCleared: 'Cache cleared successfully!',
         stopTranslation: 'Stop Translation',
         cache: 'Cache',
-        videoSubtitles: 'Video Subtitles'
+        videoSubtitles: 'Video Subtitles',
+        translatedTo: 'Page translated to',
+        showOriginal: 'Show Original',
+        showTranslation: 'Show Translation'
     },
     'zh-CN': {
         appName: '超级翻译',
@@ -75,7 +78,10 @@ const translations = {
         cacheCleared: '缓存清除成功！',
         stopTranslation: '停止翻译',
         cache: '缓存',
-        videoSubtitles: '视频字幕'
+        videoSubtitles: '视频字幕',
+        translatedTo: '页面已翻译为',
+        showOriginal: '显示原文',
+        showTranslation: '显示翻译'
     },
     'zh-TW': {
         appName: '超級翻譯',
@@ -111,7 +117,13 @@ const translations = {
         cacheInfo: '快取資訊：',
         cacheSize: '快取大小：',
         clearCache: '清除快取',
-        cacheCleared: '快取清除成功！'
+        cacheCleared: '快取清除成功！',
+        stopTranslation: '停止翻譯',
+        cache: '快取',
+        videoSubtitles: '視頻字幕',
+        translatedTo: '頁面已翻譯為',
+        showOriginal: '顯示原文',
+        showTranslation: '顯示翻譯'
     },
     'ja': {
         appName: 'ウルトラ翻訳',
@@ -140,7 +152,13 @@ const translations = {
         enterApiKey: 'APIキーを入力してください',
         translationStarted: '翻訳を開始しました！',
         translationFailed: '翻訳に失敗しました',
-        refreshPage: 'エラー：最初にページを更新してください'
+        refreshPage: 'エラー：最初にページを更新してください',
+        stopTranslation: '翻訳を停止',
+        cache: 'キャッシュ',
+        videoSubtitles: 'ビデオ字幕',
+        translatedTo: 'ページを翻訳しました',
+        showOriginal: '原文を表示',
+        showTranslation: '翻訳を表示'
     },
     'ko': {
         appName: '울트라 번역',
@@ -169,7 +187,13 @@ const translations = {
         enterApiKey: 'API 키를 입력하세요',
         translationStarted: '번역 시작!',
         translationFailed: '번역 실패',
-        refreshPage: '오류: 먼저 페이지를 새로고침하세요'
+        refreshPage: '오류: 먼저 페이지를 새로고침하세요',
+        stopTranslation: '번역 중지',
+        cache: '캐시',
+        videoSubtitles: '비디오 자막',
+        translatedTo: '페이지가 번역되었습니다',
+        showOriginal: '원문 표시',
+        showTranslation: '번역 표시'
     },
     'es': {
         appName: 'UltraTraducir',
@@ -198,7 +222,13 @@ const translations = {
         enterApiKey: 'Por favor ingrese una clave API',
         translationStarted: '¡Traducción iniciada!',
         translationFailed: 'La traducción falló',
-        refreshPage: 'Error: Por favor actualice la página primero'
+        refreshPage: 'Error: Por favor actualice la página primero',
+        stopTranslation: 'Detener traducción',
+        cache: 'Caché',
+        videoSubtitles: 'Subtítulos de video',
+        translatedTo: 'Página traducida a',
+        showOriginal: 'Mostrar original',
+        showTranslation: 'Mostrar traducción'
     },
     'fr': {
         appName: 'UltraTraduction',
@@ -227,7 +257,13 @@ const translations = {
         enterApiKey: 'Veuillez entrer une clé API',
         translationStarted: 'Traduction commencée!',
         translationFailed: 'La traduction a échoué',
-        refreshPage: 'Erreur: Veuillez d\'abord actualiser la page'
+        refreshPage: 'Erreur: Veuillez d\'abord actualiser la page',
+        stopTranslation: 'Arrêter la traduction',
+        cache: 'Cache',
+        videoSubtitles: 'Sous-titres vidéo',
+        translatedTo: 'Page traduite en',
+        showOriginal: 'Afficher l\'original',
+        showTranslation: 'Afficher la traduction'
     },
     'de': {
         appName: 'UltraÜbersetzer',
@@ -256,7 +292,13 @@ const translations = {
         enterApiKey: 'Bitte geben Sie einen API-Schlüssel ein',
         translationStarted: 'Übersetzung gestartet!',
         translationFailed: 'Übersetzung fehlgeschlagen',
-        refreshPage: 'Fehler: Bitte aktualisieren Sie zuerst die Seite'
+        refreshPage: 'Fehler: Bitte aktualisieren Sie zuerst die Seite',
+        stopTranslation: 'Übersetzung stoppen',
+        cache: 'Cache',
+        videoSubtitles: 'Video-Untertitel',
+        translatedTo: 'Seite übersetzt in',
+        showOriginal: 'Original anzeigen',
+        showTranslation: 'Übersetzung anzeigen'
     },
     'ru': {
         appName: 'УльтраПеревод',
@@ -285,7 +327,13 @@ const translations = {
         enterApiKey: 'Пожалуйста, введите API ключ',
         translationStarted: 'Перевод начат!',
         translationFailed: 'Перевод не удался',
-        refreshPage: 'Ошибка: Сначала обновите страницу'
+        refreshPage: 'Ошибка: Сначала обновите страницу',
+        stopTranslation: 'Остановить перевод',
+        cache: 'Кэш',
+        videoSubtitles: 'Видео субтитры',
+        translatedTo: 'Страница переведена на',
+        showOriginal: 'Показать оригинал',
+        showTranslation: 'Показать перевод'
     }
 };
 
@@ -318,7 +366,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadQuickSettings();
     await updateCacheSize();
     await updateApiStatus();
-    
+    await updateTranslationStatus();
+
     // Event listeners with error checking
     const settingsBtn = document.getElementById('open-settings');
     if (settingsBtn) {
@@ -447,9 +496,9 @@ async function saveQuickSettings() {
 
 async function openSettingsPage() {
     console.log('Opening settings page...');
-    
+
     // Simple direct approach - use chrome.tabs.create which works reliably
-    const optionsUrl = chrome.runtime.getURL('options.html');
+    const optionsUrl = chrome.runtime.getURL('src/pages/options.html');
     console.log('Options URL:', optionsUrl);
     
     chrome.tabs.create({
@@ -652,6 +701,105 @@ async function updateCacheSize() {
     chrome.runtime.sendMessage({ action: 'getCacheSize' }, (response) => {
         if (response && response.size !== undefined) {
             document.getElementById('cache-count').textContent = response.size;
+        }
+    });
+}
+
+// Query translation state from content script
+async function updateTranslationStatus() {
+    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+        if (tabs[0]?.id) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+                action: 'getTranslationState'
+            }, (response) => {
+                if (chrome.runtime.lastError) {
+                    // Page not ready or content script not injected
+                    hideTranslationStatus();
+                    return;
+                }
+
+                if (response && response.isTranslated) {
+                    showTranslationStatus(response.isShowingOriginal, response.targetLanguage, response.hasOriginalText);
+                } else {
+                    hideTranslationStatus();
+                }
+            });
+        }
+    });
+}
+
+// Show translation status section
+function showTranslationStatus(isShowingOriginal, targetLanguage, hasOriginalText) {
+    const statusSection = document.getElementById('translation-status-section');
+    const toggleBtn = document.getElementById('toggle-view-btn');
+    const toggleText = document.getElementById('toggle-view-text');
+    const langName = document.getElementById('target-language-name');
+
+    // Update language name
+    langName.textContent = getLanguageName(targetLanguage);
+
+    // Only show toggle button if original text is preserved
+    if (hasOriginalText) {
+        // Update button text based on current view
+        if (isShowingOriginal) {
+            toggleText.textContent = getMessage('showTranslation');
+        } else {
+            toggleText.textContent = getMessage('showOriginal');
+        }
+
+        // Show toggle button
+        toggleBtn.style.display = '';
+
+        // Add toggle button listener if not already added
+        if (!toggleBtn.dataset.listenerAdded) {
+            toggleBtn.addEventListener('click', handleToggleView);
+            toggleBtn.dataset.listenerAdded = 'true';
+        }
+    } else {
+        // Hide toggle button when preserve original is disabled
+        toggleBtn.style.display = 'none';
+    }
+
+    // Show the status section
+    statusSection.classList.remove('hidden');
+}
+
+// Hide translation status section
+function hideTranslationStatus() {
+    const statusSection = document.getElementById('translation-status-section');
+    statusSection.classList.add('hidden');
+}
+
+// Handle toggle view button click
+async function handleToggleView() {
+    const toggleBtn = document.getElementById('toggle-view-btn');
+    const toggleText = document.getElementById('toggle-view-text');
+
+    // Disable button temporarily
+    toggleBtn.disabled = true;
+
+    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+        if (tabs[0]?.id) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+                action: 'toggleView'
+            }, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error('Toggle view error:', chrome.runtime.lastError);
+                    toggleBtn.disabled = false;
+                    return;
+                }
+
+                if (response && response.success) {
+                    // Update button text
+                    if (response.isShowingOriginal) {
+                        toggleText.textContent = getMessage('showTranslation');
+                    } else {
+                        toggleText.textContent = getMessage('showOriginal');
+                    }
+                }
+
+                toggleBtn.disabled = false;
+            });
         }
     });
 }

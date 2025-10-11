@@ -7,6 +7,10 @@ const originalTextMap = new WeakMap();
 const computedStyleCache = new WeakMap();
 // Enable realtime translation after a manual translate, even if autoTranslate is off
 let manualRealtimeEnabled = false;
+// View toggle state (for popup control)
+let isShowingOriginal = false;
+// Track if extension context is still valid (to avoid flood of error messages)
+let extensionContextValid = true;
 
 // RTL languages list
 const RTL_LANGUAGES = ['ar', 'he', 'fa', 'ur', 'yi', 'ji', 'iw', 'ku', 'ms', 'ml'];
@@ -77,15 +81,20 @@ chrome.storage.sync.get({
     promptedSites: {}
 }, (settings) => {
     currentSettings = settings;
-    
+
     // Auto translate if enabled
     if (settings.autoTranslate && shouldTranslatePage()) {
         setTimeout(() => translatePage(settings), 2000);
-    } 
+    }
     // Auto prompt for translation on non-target language sites
     else if (settings.autoPromptTranslation !== false && shouldPromptTranslation(settings)) {
         setTimeout(() => showTranslationPrompt(settings), 1000);
     }
+});
+
+// Reset extension context flag when page is refreshed/reloaded
+window.addEventListener('beforeunload', () => {
+    extensionContextValid = true;
 });
 
 // Check if page should be translated
@@ -653,6 +662,27 @@ function getLanguageName(code) {
     return languages[code] || code;
 }
 
+// Toggle between showing original and translated text
+function toggleViewMode() {
+    isShowingOriginal = !isShowingOriginal;
+
+    if (isShowingOriginal) {
+        document.body.classList.add('ultra-show-original');
+        document.body.classList.remove('ultra-show-translated');
+    } else {
+        // When toggling back to show translation
+        document.body.classList.remove('ultra-show-original');
+
+        // If preserveOriginal is enabled, remove all toggle classes to show both
+        // Otherwise, add ultra-show-translated to show only translated
+        if (currentSettings.preserveOriginal) {
+            document.body.classList.remove('ultra-show-translated');
+        } else {
+            document.body.classList.add('ultra-show-translated');
+        }
+    }
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'translatePage') {
         currentSettings = request.settings;
@@ -670,6 +700,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     } else if (request.action === 'restoreOriginal') {
         restoreOriginalText(document.body);
         sendResponse({success: true});
+    } else if (request.action === 'getTranslationState') {
+        // Check if page is translated
+        const isTranslated = document.querySelector('.ultra-translate-wrapper, .ultra-translate-translated') !== null;
+        // Check if original text is preserved (wrapper only exists when preserveOriginal is true)
+        const hasOriginalText = document.querySelector('.ultra-translate-wrapper') !== null;
+        sendResponse({
+            isTranslated: isTranslated,
+            isShowingOriginal: isShowingOriginal,
+            targetLanguage: currentSettings.targetLanguage,
+            hasOriginalText: hasOriginalText
+        });
+    } else if (request.action === 'toggleView') {
+        // Toggle between original and translated view
+        toggleViewMode();
+        sendResponse({
+            success: true,
+            isShowingOriginal: isShowingOriginal
+        });
     }
     return true;
 });
@@ -743,6 +791,26 @@ async function translatePage(settings) {
     } catch (e) {
         // no-op
     }
+
+    // Set initial view state based on preserveOriginal setting
+    // Only set view state for first-time translation; preserve user's choice for re-translation
+    const isFirstTranslation = !document.querySelector('.ultra-translate-wrapper, .ultra-translate-translated');
+
+    if (isFirstTranslation) {
+        // First-time translation: set initial view state
+        if (settings.preserveOriginal) {
+            // When preserveOriginal is true, show both by default (no toggle class)
+            isShowingOriginal = false;
+            document.body.classList.remove('ultra-show-original');
+            document.body.classList.remove('ultra-show-translated');
+        } else {
+            // When preserveOriginal is false, show only translated (replacement mode)
+            isShowingOriginal = false;
+            document.body.classList.add('ultra-show-translated');
+            document.body.classList.remove('ultra-show-original');
+        }
+    }
+    // For re-translation: preserve user's current view state (isShowingOriginal and CSS classes remain unchanged)
 }
 
 function getTextNodes(element) {
@@ -996,11 +1064,16 @@ function getContextKey(element) {
 }
 
 async function translateBatch(nodes, settings) {
+    // Stop if extension context is invalid
+    if (!extensionContextValid) {
+        return;
+    }
+
     const texts = nodes.map(node => node.nodeValue.trim());
-    
+
     try {
         const translations = await sendTranslationRequest(texts, settings);
-        
+
         nodes.forEach((node, index) => {
             if (translations[index]) {
                 applyTranslation(node, translations[index], settings.preserveOriginal);
@@ -1014,27 +1087,72 @@ async function translateBatch(nodes, settings) {
 
 async function sendTranslationRequest(texts, settings) {
     return new Promise((resolve) => {
+        // Check global flag first (fast path - avoid repeated checks)
+        if (!extensionContextValid) {
+            resolve(texts.map(() => ''));
+            return;
+        }
+
+        // Check if extension context is still valid
+        if (!chrome.runtime?.id) {
+            // Only log warning once when context becomes invalid
+            if (extensionContextValid) {
+                extensionContextValid = false;
+                console.info('🔄 Extension was reloaded. Translation stopped. Please refresh the page to continue translating.');
+            }
+            resolve(texts.map(() => ''));
+            return;
+        }
+
+        // Set up timeout to prevent hanging promises
+        const timeout = setTimeout(() => {
+            if (extensionContextValid) {
+                extensionContextValid = false;
+                console.info('🔄 Translation request timed out. Extension may have been reloaded. Please refresh the page.');
+            }
+            resolve(texts.map(() => ''));
+        }, 10000); // 10 second timeout
+
         try {
             chrome.runtime.sendMessage({
                 action: 'translate',
                 texts: texts,
                 settings: settings
             }, (response) => {
-                // Check for runtime errors
-                if (chrome.runtime.lastError) {
-                    console.warn('Translation request error:', chrome.runtime.lastError);
-                    resolve(texts.map(() => ''));
-                    return;
-                }
-                
-                if (response && response.translations) {
-                    resolve(response.translations);
-                } else {
+                // Clear timeout since we got a response
+                clearTimeout(timeout);
+
+                try {
+                    // Check for runtime errors
+                    if (chrome.runtime.lastError) {
+                        // Only log once when context becomes invalid
+                        if (extensionContextValid && chrome.runtime.lastError.message?.includes('Extension context invalidated')) {
+                            extensionContextValid = false;
+                            console.info('🔄 Extension context invalidated. Translation stopped. Please refresh the page to continue translating.');
+                        }
+                        resolve(texts.map(() => ''));
+                        return;
+                    }
+
+                    if (response && response.translations) {
+                        resolve(response.translations);
+                    } else {
+                        resolve(texts.map(() => ''));
+                    }
+                } catch (error) {
+                    if (extensionContextValid) {
+                        console.warn('Error processing translation response:', error);
+                    }
                     resolve(texts.map(() => ''));
                 }
             });
         } catch (error) {
-            console.warn('Failed to send translation request:', error);
+            clearTimeout(timeout);
+            // Only log warning once when context becomes invalid
+            if (extensionContextValid) {
+                extensionContextValid = false;
+                console.info('🔄 Extension context invalidated. Translation stopped. Please refresh the page to continue translating.');
+            }
             resolve(texts.map(() => ''));
         }
     });
@@ -1042,6 +1160,11 @@ async function sendTranslationRequest(texts, settings) {
 
 // Translate form elements (select options, buttons, labels)
 async function translateFormElements(settings) {
+    // Stop if extension context is invalid
+    if (!extensionContextValid) {
+        return;
+    }
+
     // Translate select options
     const options = document.querySelectorAll('option');
     const optionTexts = [];
@@ -1115,9 +1238,14 @@ async function translateFormElements(settings) {
 
 // Translate dynamic dropdown and navigation elements with improved detection
 async function translateDynamicElements(settings) {
+    // Stop if extension context is invalid
+    if (!extensionContextValid) {
+        return;
+    }
+
     // Use attribute-based detection for more flexibility
     const dynamicElements = findDynamicElements();
-    
+
     for (const element of dynamicElements) {
         // Skip if already processed
         if (element.classList.contains('ultra-translate-processed')) {
@@ -1241,11 +1369,16 @@ function findDynamicElements() {
 
 // Helper function to translate form elements within a specific container
 async function translateFormElementsInContainer(container, settings) {
+    // Stop if extension context is invalid
+    if (!extensionContextValid) {
+        return;
+    }
+
     const options = container.querySelectorAll('option');
     const buttons = container.querySelectorAll('button, input[type="button"], input[type="submit"]');
     const labels = container.querySelectorAll('label');
     const ariaLabels = container.querySelectorAll('[aria-label]');
-    
+
     const texts = [];
     const elements = [];
     
@@ -1299,10 +1432,15 @@ async function translateFormElementsInContainer(container, settings) {
 
 // Translate attributes (title, placeholder, alt)
 async function translateAttributes(settings) {
+    // Stop if extension context is invalid
+    if (!extensionContextValid) {
+        return;
+    }
+
     const elementsWithTitle = document.querySelectorAll('[title]');
     const elementsWithPlaceholder = document.querySelectorAll('[placeholder]');
     const elementsWithAlt = document.querySelectorAll('[alt]');
-    
+
     const attributeTexts = [];
     const attributeInfo = [];
     
@@ -1541,10 +1679,12 @@ function restoreOriginalText(element) {
 
 // Toggle translation on/off
 function toggleTranslation() {
+    // Check if page is already translated
     if (document.querySelector('.ultra-translate-wrapper, .ultra-translate-translated')) {
-        restoreOriginalText(document.body);
-        manualRealtimeEnabled = false; // stop realtime when user restores
+        // Use CSS-based toggle for instant switching
+        toggleViewMode();
     } else {
+        // Start new translation
         translatePage(currentSettings);
     }
 }

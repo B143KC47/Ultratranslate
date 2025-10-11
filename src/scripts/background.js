@@ -4,23 +4,72 @@ const MAX_CACHE_SIZE = 1000;
 const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'translate') {
-        handleTranslation(request.texts, request.settings)
-            .then(translations => {
-                sendResponse({ translations });
-            })
-            .catch(error => {
-                console.error('Translation error:', error);
-                sendResponse({ translations: request.texts.map(() => '') });
-            });
-        return true;
-    } else if (request.action === 'clearCache') {
-        translationCache.clear();
-        sendResponse({ success: true });
-        return true;
-    } else if (request.action === 'getCacheSize') {
-        sendResponse({ size: translationCache.size });
-        return true;
+    // Wrap in try-catch to handle synchronous errors
+    try {
+        if (request.action === 'translate') {
+            // Verify request has required data
+            if (!request.texts || !Array.isArray(request.texts)) {
+                console.warn('Invalid translation request: missing texts array');
+                sendResponse({ translations: [] });
+                return false;
+            }
+
+            handleTranslation(request.texts, request.settings)
+                .then(translations => {
+                    // Verify extension context is still valid before responding
+                    try {
+                        if (chrome.runtime?.id) {
+                            sendResponse({ translations });
+                        } else {
+                            console.warn('Extension context invalidated, cannot send response');
+                        }
+                    } catch (e) {
+                        console.warn('Error sending translation response:', e);
+                    }
+                })
+                .catch(error => {
+                    console.error('Translation error:', error);
+                    // Verify extension context is still valid before responding
+                    try {
+                        if (chrome.runtime?.id) {
+                            sendResponse({ translations: request.texts.map(() => '') });
+                        } else {
+                            console.warn('Extension context invalidated, cannot send error response');
+                        }
+                    } catch (e) {
+                        console.warn('Error sending error response:', e);
+                    }
+                });
+            return true; // Indicate async response
+        } else if (request.action === 'clearCache') {
+            translationCache.clear();
+            sendResponse({ success: true });
+            return true;
+        } else if (request.action === 'getCacheSize') {
+            sendResponse({ size: translationCache.size });
+            return true;
+        } else if (request.action === 'openSettings') {
+            chrome.runtime.openOptionsPage();
+            sendResponse({ success: true });
+            return true;
+        }
+
+        // Unknown action
+        return false;
+    } catch (error) {
+        console.error('Message handler error:', error);
+        // Attempt to send error response
+        try {
+            if (chrome.runtime?.id) {
+                sendResponse({
+                    translations: request.texts?.map(() => '') || [],
+                    error: error.message
+                });
+            }
+        } catch (e) {
+            console.warn('Failed to send error response:', e);
+        }
+        return false;
     }
 });
 

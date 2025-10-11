@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UltraTranslate</title>
-    <link rel="stylesheet" href="popup.css">
+    <link rel="stylesheet" href="../styles/popup.css">
 </head>
 <body>
     <div class="popup-container">
@@ -15,7 +15,19 @@
                 <button id="close-popup" class="settings-btn" title="Close">×</button>
             </div>
         </div>
-        
+
+        <!-- Translation Status Section (like Google Translate) -->
+        <div id="translation-status-section" class="translation-status hidden">
+            <div class="translation-info">
+                <span class="status-icon">✓</span>
+                <span id="translation-status-text" data-i18n-key="translatedTo">Page translated to</span>
+                <strong id="target-language-name">Chinese</strong>
+            </div>
+            <button id="toggle-view-btn" class="toggle-view-btn">
+                <span id="toggle-view-text" data-i18n-key="showOriginal">Show Original</span>
+            </button>
+        </div>
+
         <div class="quick-settings">
             <div class="quick-setting">
                 <label data-i18n="targetLanguage">Target Language:</label>
@@ -63,6 +75,6 @@
 
         <div id="quick-status-message"></div>
     </div>
-    <script src="popup.js"></script>
+    <script src="../scripts/popup.js"></script>
 </body>
 </html>

@@ -252,3 +252,75 @@ button {
 #clear-cache:hover {
     background: #6e7086;
 }
+
+/* Translation Status Section (Google Translate-like) */
+.translation-status {
+    background: linear-gradient(135deg, rgba(16, 163, 127, 0.15) 0%, rgba(16, 163, 127, 0.05) 100%);
+    border: 1px solid rgba(16, 163, 127, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+    animation: slideDown 0.3s ease-out;
+}
+
+.translation-status.hidden {
+    display: none;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.translation-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: #ececf1;
+}
+
+.status-icon {
+    font-size: 16px;
+    color: #10a37f;
+}
+
+.translation-info strong {
+    color: #10a37f;
+    font-weight: 600;
+}
+
+.toggle-view-btn {
+    width: 100%;
+    padding: 8px 12px;
+    background: #10a37f;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.toggle-view-btn:hover:not(:disabled) {
+    background: #0e906d;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(16, 163, 127, 0.3);
+}
+
+.toggle-view-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.toggle-view-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

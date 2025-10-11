@@ -26,31 +26,31 @@
     "http://*/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "src/scripts/background.js"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "css": ["content.css"],
+      "js": ["src/scripts/content.js"],
+      "css": ["src/styles/content.css"],
       "run_at": "document_idle"
     }
   ],
   "action": {
-    "default_popup": "popup.html",
+    "default_popup": "src/pages/popup.html",
     "default_icon": {
-      "16": "icon16.png",
-      "48": "icon48.png",
-      "128": "icon128.png"
+      "16": "assets/icons/icon16.png",
+      "48": "assets/icons/icon48.png",
+      "128": "assets/icons/icon128.png"
     }
   },
   "options_ui": {
-    "page": "options.html",
+    "page": "src/pages/options.html",
     "open_in_tab": true
   },
   "icons": {
-    "16": "icon16.png",
-    "48": "icon48.png",
-    "128": "icon128.png"
+    "16": "assets/icons/icon16.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
   }
 }
