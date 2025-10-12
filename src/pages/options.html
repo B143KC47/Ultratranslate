@@ -274,6 +274,32 @@
                     </select>
                 </div>
 
+                <!-- Translation Style Preview -->
+                <div class="setting-item" id="translation-preview-section">
+                    <h3 data-i18n="stylePreview">Translation Style Preview</h3>
+                    <div class="preview-container">
+                        <div class="preview-sample">
+                            <div class="preview-text">
+                                <span data-i18n="previewOriginalText">This is a sample text to demonstrate translation styling.</span>
+                            </div>
+                            <div id="preview-translated" class="preview-translation">
+                                <span class="ultra-translate-original" data-i18n="previewOriginalText">This is a sample text to demonstrate translation styling.</span>
+                                <span class="ultra-translate-translated" data-i18n="previewTranslatedText">这是一个演示翻译样式的示例文本。</span>
+                            </div>
+                        </div>
+                    </div>
+                    <small data-i18n="stylePreviewDesc">Preview how translations will appear on pages</small>
+                </div>
+
+                <div class="setting-item">
+                    <label class="switch-label">
+                        <input type="checkbox" id="enable-container-effects">
+                        <span class="switch"></span>
+                        <span data-i18n="enableContainerEffects">Enable Container Effects</span>
+                    </label>
+                    <small data-i18n="containerEffectsDesc">Add background, border, and shadow to translations</small>
+                </div>
+
                 <div class="setting-item">
                     <label for="translation-color" data-i18n="translationColor">Translation Color:</label>
                     <input type="color" id="translation-color" value="#10a37f">

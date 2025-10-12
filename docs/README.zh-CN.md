@@ -12,7 +12,7 @@
 
 ### 📚 文档语言
 
-[**English**](README.md) | [**中文简体**](README.zh-CN.md) | [**日本語**](README.ja.md) | [**한국어**](README.ko.md) | [**Español**](README.es.md)
+[**English**](../README.md) | [**中文简体**](README.zh-CN.md) | [**日本語**](README.ja.md) | [**한국어**](README.ko.md) | [**Español**](README.es.md)
 
 </div>
 

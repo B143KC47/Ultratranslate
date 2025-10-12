@@ -78,7 +78,8 @@ chrome.storage.sync.get({
     autoTranslate: false,
     interfaceLanguage: 'en',
     autoPromptTranslation: true,
-    promptedSites: {}
+    promptedSites: {},
+    enableContainerEffects: true
 }, (settings) => {
     currentSettings = settings;
 
@@ -690,6 +691,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({success: true});
     } else if (request.action === 'updateSettings') {
         currentSettings = request.settings;
+        // Apply container effects immediately
+        if (currentSettings.enableContainerEffects === false) {
+            document.body.classList.add('ultra-no-container');
+        } else {
+            document.body.classList.remove('ultra-no-container');
+        }
     } else if (request.action === 'stopTranslation') {
         isTranslating = false;
         removeLoadingIndicator();
@@ -810,6 +817,13 @@ async function translatePage(settings) {
             document.body.classList.remove('ultra-show-original');
         }
     }
+
+    // Apply container effects setting
+    if (settings.enableContainerEffects === false) {
+        document.body.classList.add('ultra-no-container');
+    } else {
+        document.body.classList.remove('ultra-no-container');
+    }
     // For re-translation: preserve user's current view state (isShowingOriginal and CSS classes remain unchanged)
 }
 
@@ -822,10 +836,26 @@ function getTextNodes(element) {
             acceptNode: function(node) {
                 // Skip if already translated
                 if (translatedNodes.has(node)) return NodeFilter.FILTER_REJECT;
-                
+
                 const parent = node.parentElement;
                 if (!parent) return NodeFilter.FILTER_REJECT;
-                
+
+                // Check if node is inside a translated element (traverse up the DOM tree)
+                let ancestor = parent;
+                while (ancestor) {
+                    if (ancestor.classList &&
+                        (ancestor.classList.contains('ultra-translate-wrapper') ||
+                         ancestor.classList.contains('ultra-translate-original') ||
+                         ancestor.classList.contains('ultra-translate-translated'))) {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+                    // Also check if ancestor is in translatedNodes
+                    if (ancestor.nodeType === Node.TEXT_NODE && translatedNodes.has(ancestor)) {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+                    ancestor = ancestor.parentElement;
+                }
+
                 // Enhanced tag filtering
                 const tagName = parent.tagName?.toLowerCase();
                 const skipTags = [
@@ -837,23 +867,20 @@ function getTextNodes(element) {
                 if (skipTags.includes(tagName)) {
                     return NodeFilter.FILTER_REJECT;
                 }
-                
+
                 // Skip contenteditable elements
                 if (parent.contentEditable === 'true' || parent.isContentEditable) {
                     return NodeFilter.FILTER_REJECT;
                 }
-                
+
                 // Skip aria-hidden elements
                 if (parent.getAttribute('aria-hidden') === 'true') {
                     return NodeFilter.FILTER_REJECT;
                 }
-                
+
                 // Skip translation attributes
-                if (parent.getAttribute('translate') === 'no' || 
-                    parent.classList?.contains('notranslate') ||
-                    parent.classList?.contains('ultra-translate-wrapper') ||
-                    parent.classList?.contains('ultra-translate-original') ||
-                    parent.classList?.contains('ultra-translate-translated')) {
+                if (parent.getAttribute('translate') === 'no' ||
+                    parent.classList?.contains('notranslate')) {
                     return NodeFilter.FILTER_REJECT;
                 }
                 
@@ -1526,7 +1553,9 @@ function applyTranslation(textNode, translation, preserveOriginal) {
         originalSpan.setAttribute('lang', sourceLang);
         originalSpan.setAttribute('aria-hidden', 'true'); // Prevent screen readers from reading twice
         originalSpan.setAttribute('translate', 'no');
-        
+        // Backup original text in data attribute
+        originalSpan.setAttribute('data-original-text', originalText);
+
         // Translated text span with proper language attributes
         const translatedSpan = document.createElement('span');
         translatedSpan.className = 'ultra-translate-translated';
@@ -1534,6 +1563,8 @@ function applyTranslation(textNode, translation, preserveOriginal) {
         translatedSpan.title = 'Translated text';
         translatedSpan.setAttribute('lang', targetLang);
         translatedSpan.setAttribute('aria-live', 'polite');
+        // Backup original text in data attribute
+        translatedSpan.setAttribute('data-original-text', originalText);
         
         // Add RTL support if needed
         if (isRTL) {
@@ -1559,6 +1590,8 @@ function applyTranslation(textNode, translation, preserveOriginal) {
         
         // Store original text mapping to wrapper for restoration
         originalTextMap.set(wrapper, originalText);
+        // Backup original text in data attribute
+        wrapper.setAttribute('data-original-text', originalText);
         parent.replaceChild(wrapper, textNode);
     } else {
         // Replacement mode - store original in WeakMap
@@ -1568,6 +1601,8 @@ function applyTranslation(textNode, translation, preserveOriginal) {
         translatedSpan.title = originalText; // Tooltip shows original
         translatedSpan.setAttribute('lang', targetLang);
         translatedSpan.setAttribute('data-original-lang', sourceLang);
+        // Backup original text in data attribute
+        translatedSpan.setAttribute('data-original-text', originalText);
         
         // Add RTL support if needed
         if (isRTL) {
@@ -1691,27 +1726,50 @@ function toggleTranslation() {
 
 const observer = new MutationObserver((mutations) => {
     if (!(currentSettings.autoTranslate || manualRealtimeEnabled)) return;
-    
+
     let hasNewContent = false;
     mutations.forEach((mutation) => {
         if (mutation.type === 'childList') {
             mutation.addedNodes.forEach((node) => {
+                // Check if node is inside a translated element
+                const isInsideTranslated = (n) => {
+                    let parent = n.parentElement;
+                    while (parent) {
+                        if (parent.classList &&
+                            (parent.classList.contains('ultra-translate-wrapper') ||
+                             parent.classList.contains('ultra-translate-translated'))) {
+                            return true;
+                        }
+                        parent = parent.parentElement;
+                    }
+                    return false;
+                };
+
                 if (node.nodeType === Node.TEXT_NODE) {
+                    // Skip if text node is inside translated element
+                    if (isInsideTranslated(node)) return;
+
+                    // Skip if already in translatedNodes
+                    if (translatedNodes.has(node)) return;
+
                     const text = node.textContent?.trim();
                     if (text && text.length > 1) {
                         hasNewContent = true;
                     }
                 } else if (node.nodeType === Node.ELEMENT_NODE) {
                     // Skip if already translated
-                    if (node.classList && 
-                        (node.classList.contains('ultra-translate-wrapper') || 
+                    if (node.classList &&
+                        (node.classList.contains('ultra-translate-wrapper') ||
                          node.classList.contains('ultra-translate-translated'))) {
                         return;
                     }
-                    
+
+                    // Skip if inside translated element
+                    if (isInsideTranslated(node)) return;
+
                     // Check for text content or form elements
-                    if (node.textContent?.trim() || 
-                        node.tagName === 'SELECT' || 
+                    if (node.textContent?.trim() ||
+                        node.tagName === 'SELECT' ||
                         node.tagName === 'OPTION' ||
                         node.tagName === 'BUTTON' ||
                         node.tagName === 'LABEL' ||
@@ -1721,9 +1779,17 @@ const observer = new MutationObserver((mutations) => {
                 }
             });
         } else if (mutation.type === 'attributes') {
+            // Skip attribute changes on translated elements
+            const target = mutation.target;
+            if (target.classList &&
+                (target.classList.contains('ultra-translate-wrapper') ||
+                 target.classList.contains('ultra-translate-translated'))) {
+                return;
+            }
+
             // Check for dynamically added attributes or visibility changes
-            if (mutation.attributeName === 'title' || 
-                mutation.attributeName === 'placeholder' || 
+            if (mutation.attributeName === 'title' ||
+                mutation.attributeName === 'placeholder' ||
                 mutation.attributeName === 'alt' ||
                 mutation.attributeName === 'value' ||
                 mutation.attributeName === 'aria-label' ||
@@ -1731,7 +1797,6 @@ const observer = new MutationObserver((mutations) => {
                 mutation.attributeName === 'style' ||
                 mutation.attributeName === 'class') {
                 // Check if element became visible
-                const target = mutation.target;
                 if (target.nodeType === Node.ELEMENT_NODE) {
                     const style = window.getComputedStyle(target);
                     if (style.display !== 'none' && style.visibility !== 'hidden') {
@@ -1741,7 +1806,7 @@ const observer = new MutationObserver((mutations) => {
             }
         }
     });
-    
+
     if (hasNewContent) {
         throttledTranslate();
     }
