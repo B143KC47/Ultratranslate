@@ -13,6 +13,12 @@
     unicode-bidi: isolate;
 }
 
+/* Block context wrapper for proper paragraph spacing */
+.ultra-translate-block-wrapper {
+    display: block;
+    margin-bottom: 0.75em;
+}
+
 /* Original text with no styling */
 .ultra-translate-original {
     display: block;
@@ -31,10 +37,11 @@
     text-decoration: inherit;
     line-height: inherit;
     unicode-bidi: embed;
-    /* Subtle background highlight to distinguish translated content */
-    background-color: rgba(100, 116, 139, 0.05);
-    padding: 0 2px;
-    border-radius: 2px;
+}
+
+/* Add spacing between original and translated in block contexts */
+.ultra-translate-block-wrapper .ultra-translate-translated {
+    margin-top: 0.35em;
 }
 
 /* RTL support for translated text */
@@ -60,9 +67,9 @@
 }
 
 /* Inline text handling */
-p .ultra-translate-wrapper,
+p .ultra-translate-wrapper:not(.ultra-translate-block-wrapper),
 span .ultra-translate-wrapper,
-div .ultra-translate-wrapper {
+div .ultra-translate-wrapper:not(.ultra-translate-block-wrapper) {
     display: inline;
 }
 
@@ -76,6 +83,16 @@ p .ultra-translate-translated,
 span .ultra-translate-translated,
 div .ultra-translate-translated {
     display: inline;
+}
+
+/* Block wrapper inside paragraphs maintains block display for proper spacing */
+p .ultra-translate-block-wrapper {
+    display: block;
+}
+
+p .ultra-translate-block-wrapper .ultra-translate-original,
+p .ultra-translate-block-wrapper .ultra-translate-translated {
+    display: block;
 }
 
 /* Headers - no special effects */
@@ -100,10 +117,10 @@ a .ultra-translate-translated {
     text-decoration: inherit;
 }
 
-/* Dark mode - adjust background highlight for better visibility */
+/* Dark mode - no visual changes, translated text remains seamless */
 @media (prefers-color-scheme: dark) {
     .ultra-translate-translated {
-        background-color: rgba(148, 163, 184, 0.08);
+        /* No background - translated text is visually identical to original */
     }
 }
 
@@ -125,7 +142,7 @@ a .ultra-translate-translated {
 @media (prefers-contrast: high) {
     .ultra-translate-translated {
         font-weight: inherit;
-        background-color: rgba(100, 116, 139, 0.15);
+        /* No background - translated text is visually identical to original */
     }
 }
 
@@ -156,6 +173,10 @@ a .ultra-translate-translated {
         padding: 0 !important;
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
+    }
+
+    .ultra-translate-block-wrapper {
+        margin-bottom: 0.5em;
     }
 }
 
@@ -305,25 +326,23 @@ a .ultra-translate-translated {
 
 /* No container effects mode - now default behavior */
 body.ultra-no-container .ultra-translate-translated {
-    /* Inherit color from original text, use subtle background instead */
+    /* Inherit all styling from original text - no visual indicators */
     color: inherit;
     font-weight: inherit;
-    background-color: rgba(100, 116, 139, 0.08);
 }
 
-/* Preserve subtle hover effect even without container */
+/* No hover effects - translated text is completely seamless */
 body.ultra-no-container .ultra-translate-translated:hover {
-    background-color: rgba(100, 116, 139, 0.12);
-    transform: none;
+    /* No visual changes on hover */
 }
 
-/* Dark mode support for no-container */
+/* Dark mode support for no-container - no visual changes */
 @media (prefers-color-scheme: dark) {
     body.ultra-no-container .ultra-translate-translated {
-        background-color: rgba(148, 163, 184, 0.1);
+        /* No background - translated text is visually identical to original */
     }
 
     body.ultra-no-container .ultra-translate-translated:hover {
-        background-color: rgba(148, 163, 184, 0.15);
+        /* No visual changes on hover */
     }
 }

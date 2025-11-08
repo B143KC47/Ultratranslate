@@ -1540,11 +1540,16 @@ function applyTranslation(textNode, translation, preserveOriginal) {
     if (preserveOriginal) {
         const wrapper = document.createElement(isInlineContext ? 'span' : 'div');
         wrapper.className = 'ultra-translate-wrapper';
-        
+
+        // Add block context class for proper spacing
+        if (isBlockContext && !isInlineContext) {
+            wrapper.classList.add('ultra-translate-block-wrapper');
+        }
+
         // Add accessibility attributes to wrapper
         wrapper.setAttribute('role', 'group');
         wrapper.setAttribute('aria-label', 'Translation');
-        
+
         // Original text span with accessibility attributes
         const originalSpan = document.createElement('span');
         originalSpan.className = 'ultra-translate-original';
@@ -1565,12 +1570,12 @@ function applyTranslation(textNode, translation, preserveOriginal) {
         translatedSpan.setAttribute('aria-live', 'polite');
         // Backup original text in data attribute
         translatedSpan.setAttribute('data-original-text', originalText);
-        
+
         // Add RTL support if needed
         if (isRTL) {
             translatedSpan.setAttribute('dir', 'rtl');
         }
-        
+
         // Structure based on context
         if (isInlineContext) {
             // For inline elements, use separator
@@ -1578,16 +1583,16 @@ function applyTranslation(textNode, translation, preserveOriginal) {
             separator.className = 'ultra-translate-separator';
             separator.setAttribute('aria-hidden', 'true');
             separator.textContent = ' | ';
-            
+
             wrapper.appendChild(originalSpan);
             wrapper.appendChild(separator);
             wrapper.appendChild(translatedSpan);
         } else {
-            // For block elements, stack vertically
+            // For block elements, stack vertically with spacing
             wrapper.appendChild(originalSpan);
             wrapper.appendChild(translatedSpan);
         }
-        
+
         // Store original text mapping to wrapper for restoration
         originalTextMap.set(wrapper, originalText);
         // Backup original text in data attribute
